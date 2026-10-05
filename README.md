@@ -1,4 +1,4 @@
-﻿# MNIST from scratch (minimal)
+# MNIST from scratch (minimal)
 
 This repository contains a minimal-from-scratch 2-layer fully-connected neural network for MNIST.
 It focuses on clarity and teaching: all code is plain NumPy and small enough to study.

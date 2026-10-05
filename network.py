@@ -13,6 +13,7 @@ Everything is float32. Careful when adding code: mixing in a NumPy float64
 *scalar* (e.g. the result of np.sqrt(2.0) or np.cos(x)) silently turns the
 arrays back into float64. Plain Python floats and the math module are safe.
 """
+import math
 import time
 
 import numpy as np
@@ -109,16 +110,22 @@ def accuracy(params, X, Y):
     return float((probs.argmax(axis=0) == Y).mean())
 
 
-def train(X, Y, X_dev, Y_dev, hidden_size=128, epochs=10, lr=0.1, batch_size=64, seed=0):
-    """Train with mini-batch stochastic gradient descent (SGD).
+def train(X, Y, X_dev, Y_dev, hidden_size=128, epochs=10, lr=0.05, momentum=0.9,
+          batch_size=64, seed=0):
+    """Train with mini-batch stochastic gradient descent (SGD) with momentum
+    and a cosine learning-rate schedule.
 
     One epoch = one pass over all training images, in a fresh random order,
-    taking one small step downhill on the loss after every batch.
+    taking one step downhill on the loss after every batch.
     The same seed always gives the same result.
     """
     rng = np.random.default_rng(seed)
     params = init_params(hidden_size, rng)
+    # One "velocity" per parameter, same shape, starting at rest
+    velocity = {k: np.zeros_like(v) for k, v in params.items()}
     m = X.shape[1]
+    total_steps = epochs * math.ceil(m / batch_size)
+    step = 0
 
     for epoch in range(epochs):
         start = time.time()
@@ -132,10 +139,21 @@ def train(X, Y, X_dev, Y_dev, hidden_size=128, epochs=10, lr=0.1, batch_size=64,
             grads = backward(params, probs, cache, Yb)
             losses.append(cross_entropy(probs, Yb))
 
-            # SGD: move every parameter a small step against its gradient
+            # Cosine schedule: the learning rate starts at lr and glides down to 0
+            # along half a cosine wave. Big steps early to make fast progress,
+            # tiny steps at the end to settle into the bottom of the valley.
+            step_lr = lr * 0.5 * (1 + math.cos(math.pi * step / total_steps))
+            step += 1
+
+            # Momentum: instead of stepping along this batch's gradient alone,
+            # step along a running average of recent gradients (the "velocity").
+            # Directions that agree from batch to batch build up speed, while
+            # noisy back-and-forth directions cancel out. momentum=0 is plain SGD.
             for k in params:
-                params[k] -= lr * grads[k]
+                velocity[k] = momentum * velocity[k] + grads[k]
+                params[k] -= step_lr * velocity[k]
 
         print(f"epoch {epoch + 1:2d}/{epochs}  train loss {np.mean(losses):.4f}  "
-              f"dev acc {accuracy(params, X_dev, Y_dev) * 100:.2f}%  ({time.time() - start:.1f}s)")
+              f"dev acc {accuracy(params, X_dev, Y_dev) * 100:.2f}%  "
+              f"lr {step_lr:.4f}  ({time.time() - start:.1f}s)")
     return params

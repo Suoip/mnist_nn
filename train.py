@@ -16,7 +16,8 @@ def main():
     parser = argparse.ArgumentParser(description="Train the MNIST network and save it to a .npz file.")
     parser.add_argument("--hidden-size", type=int, default=128, help="number of hidden units")
     parser.add_argument("--epochs", type=int, default=10, help="passes over the training set")
-    parser.add_argument("--lr", type=float, default=0.1, help="learning rate")
+    parser.add_argument("--lr", type=float, default=0.05, help="starting learning rate")
+    parser.add_argument("--momentum", type=float, default=0.9, help="momentum (0 = plain SGD)")
     parser.add_argument("--batch-size", type=int, default=64, help="images per gradient step")
     parser.add_argument("--seed", type=int, default=0, help="random seed (same seed = same result)")
     parser.add_argument("--out", default="model.npz", help="where to save the trained model")
@@ -31,6 +32,7 @@ def main():
         hidden_size=args.hidden_size,
         epochs=args.epochs,
         lr=args.lr,
+        momentum=args.momentum,
         batch_size=args.batch_size,
         seed=args.seed,
     )

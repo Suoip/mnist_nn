@@ -1,102 +1,138 @@
-# MNIST from scratch (minimal)
+# MNIST neural network from scratch
 
-This repository contains a minimal-from-scratch 2-layer fully-connected neural network for MNIST.
-It focuses on clarity and teaching: all code is plain NumPy and small enough to study.
+A small fully-connected neural network that learns to read handwritten digits,
+written with nothing but NumPy: no PyTorch, no TensorFlow. Forward pass,
+backpropagation and training loop are all in `network.py` (about 200 lines,
+about half of them comments).
 
-Project layout
--`mnist.py` - dataset utilities: `load_data()` and `display_image()` (IDX and CSV support)
--`cnn.py` - neural network primitives and training utilities (forward/backward/train/lr_finder)
--`train.py` - CLI to train and save a model (`.npz`)
--`test.py` - CLI to load a model and inspect predictions (includes `--show-wrongs`)
--`download_mnist.py` - helper to download and extract MNIST IDX files into `data/`
+It reaches **about 99% accuracy** on the official MNIST test set in about a
+minute of training on a CPU.
 
-Setup
+## Quick start
 
-Install dependencies in PowerShell:
+Works the same on Windows, macOS and Linux (on macOS/Linux you may need to type
+`python3` instead of `python`).
 
-```powershell
+```
 pip install -r requirements.txt
+python download_mnist.py      # fetches the 4 MNIST files into data/
+python train.py               # trains, prints test accuracy, saves model.npz
+python test.py                # shows random test images with the network's guesses
+python test.py --wrong        # shows only the ones it got wrong
 ```
 
-Put your data files in the `data/` folder. Supported input formats (checked in this order):
--Original MNIST IDX files: `train-images.idx3-ubyte` and `train-labels.idx1-ubyte` (recommended).
--CSV file named `mnist_train.csv` or `train.csv` where the first column is the label and the following 784 columns are pixels (0-255).
+## Files
 
-If you don't have IDX files, `download_mnist.py` can fetch and extract them for you.
+| File | What it does |
+|---|---|
+| `download_mnist.py` | Downloads the four MNIST `.gz` files into `data/`. |
+| `mnist.py` | Reads those files into NumPy arrays and splits them into train / dev / test. |
+| `network.py` | The neural network: initialization, forward pass, loss, backpropagation, training. |
+| `train.py` | Command line script: trains a network, reports test accuracy, saves it to `model.npz`. |
+| `test.py` | Command line script: loads `model.npz` and shows test images with its guesses. |
 
-Scripts & CLI reference
+## How it works
 
-Below are the available commands, flags, descriptions and copy/paste PowerShell examples.
+### The data
 
-`download_mnist.py` - Download and extract MNIST IDX files into `data/`.
+MNIST is 70,000 grayscale 28x28 images of handwritten digits: 60,000 for
+training and 10,000 for testing. Each image is flattened into a column of 784
+numbers between 0 (black) and 1 (white). The data is split three ways:
 
-Options:
--`--delete-gz`: delete the downloaded `.gz` files after extraction.
+- **train** (55,000 images): what the network learns from.
+- **dev** (the last 5,000 training images): never trained on. Checked after
+  every epoch to watch progress and to compare settings.
+- **test** (the official 10,000): used only once, for the final score. If you
+  tuned settings on it, the score would no longer be honest.
 
-Examples:
+### The network
 
-```powershell
-python .\download_mnist.py
+```
+x (784) -> Linear -> ReLU -> Dropout -> Linear -> Softmax -> p (10)
 ```
 
-```powershell
-python .\download_mnist.py --delete-gz
+Images are stored as **columns**: a batch of `m` images is a `(784, m)` matrix,
+so each layer is a single matrix product for the whole batch.
+
+```
+Z1 = W1 @ X + b1        (hidden, m)   W1 is (hidden, 784), b1 is (hidden, 1)
+A1 = max(Z1, 0)         (hidden, m)   ReLU
+Z2 = W2 @ A1 + b2       (10, m)       W2 is (10, hidden),  b2 is (10, 1)
+P  = softmax(Z2)        (10, m)       each column: 10 probabilities that sum to 1
 ```
 
-`train.py` - Train a model and save parameters to a `.npz` file.
+The guess is the digit with the highest probability.
 
-Common flags:
--`--data-dir`: directory containing your data (default: `data`)
--`--dev-size`: number of examples reserved for the dev/validation set (default: `1000`)
--`--hidden-size`: hidden layer width (default: `128`)
--`--lr`: learning rate (default: `0.1`)
--`--epochs`: number of training epochs (default: `10`)
--`--batch-size`: mini-batch size (default: `64`)
--`--print-every`: print metrics every N epochs (default: `1`)
--`--out`: output `.npz` path (default: `model.npz`)
--`--no-tqdm`: disable progress bars
--`--lr-finder`: run a quick LR range test and exit
+### The loss
 
-LR finder flags:
--`--lr-start` (default: `1e-7`)
--`--lr-end` (default: `1.0`)
--`--lr-iters` (default: `100`)
--`--lr-batch-size` (default: `128`)
+**Cross-entropy**: the average of `-log(probability given to the correct digit)`.
+It is 0 when the network is 100% sure of the right answer and grows quickly as
+that probability drops.
 
-Example:
+### Backpropagation
 
-```powershell
-python .\train.py --epochs 10 --batch-size 64 --lr 0.1 --out model.npz
+To improve, the network needs the gradient of the loss with respect to every
+weight: which direction to nudge each one so the loss goes down. Backprop gets
+them by applying the chain rule backwards through the forward pass:
+
+```
+dZ2 = (P - one_hot(Y)) / m      softmax + cross-entropy combined: just "probabilities minus answers"
+dW2 = dZ2 @ A1.T                db2 = sum of dZ2 over the batch
+dA1 = W2.T @ dZ2
+dZ1 = dA1 * (Z1 > 0)            ReLU only lets gradient through where its input was positive
+dW1 = dZ1 @ X.T                 db1 = sum of dZ1 over the batch
 ```
 
-`test.py` - Load a saved `.npz` model and inspect predictions.
+### Training
 
-Flags:
--`--data-dir`: data directory (default `data`)
--`--dev-size`: dev split size used by `load_data()` (default `1000`)
--`--model`: path to the saved `.npz` model (default `model.npz`)
--`--num`: number of random samples to show (default `5`)
--`--use-dev`: use the dev set instead of the training set
--`--show-wrongs`: show misclassified examples from the chosen set
--`--limit`: max number of wrong examples to display when `--show-wrongs` is used (default `20`)
+Repeat for each epoch (one full pass over the training set, in a fresh random
+order): take a batch of 64 images, run forward, run backward, nudge every
+weight against its gradient. Then print the dev accuracy.
 
-Examples:
+## From 97% to 99%: what each improvement does
 
-```powershell
-python .\test.py --model model.npz --num 5
-```
+The original version (small random weights, plain SGD, 128 hidden units, 10
+epochs) scored 96.9% on the test set. Each row below is one commit, so
+`git log` and `git show` let you see exactly what changed.
 
-```powershell
-python .\test.py --model model.npz --use-dev --show-wrongs --limit 20
-```
+| Step | Test accuracy | Training time |
+|---|---|---|
+| Original algorithm | 96.94% | 7s |
+| **float32** instead of float64: half the memory, about 2x faster math, same accuracy | 97.27% | 3s |
+| **He initialization**: start weights at a scale suited to ReLU (`std = sqrt(2 / inputs)`) | 97.51% | 4s |
+| **Momentum + cosine learning-rate schedule**: step along a running average of gradients, and shrink the step size smoothly to 0 by the end | 98.11% | 6s |
+| **Dropout + bigger network**: randomly switch off 20% of hidden units while training so the network can't memorize; 512 hidden units, 20 epochs | 98.42% | 41s |
+| **Data augmentation**: shift each training batch by up to 2 pixels so position stops mattering; 30 epochs | **99.01%** | 58s |
 
-`mnist.py` utilities:
--`load_data(data_dir='data', dev_size=1000, shuffle=True)` — returns `(X_train, Y_train, X_dev, Y_dev)` with `X` shaped `(features, m)` (i.e., `(784, m)`).
--`display_image(image_vector, cmap='gray')` — show a 28x28 image using `matplotlib`.
+Every number is a single run with seed 0. The final version scores 99.01%,
+98.96% and 98.94% with seeds 0, 1 and 2, and earlier rows vary by similar
+amounts, so differences of about 0.1% or less are noise.
 
-Troubleshooting
--If the loader picks up `sample_submission.csv`, move it out of `data/` and add the proper IDX files or a CSV with 784 pixel columns.
--If images do not show, ensure `matplotlib` is installed and GUI is available (or use a notebook).
--If training is slow, reduce `--hidden-size` or `--epochs`, or increase `--batch-size`.
+About 99% is close to the limit for this kind of network. Going clearly beyond
+it takes a convolutional network, which looks at small patches of the image
+instead of all 784 pixels at once. That would be a different project.
 
-License: small teaching project - reuse freely for learning and experimentation.
+## Options
+
+`python train.py --help` and `python test.py --help` list every option.
+
+| `train.py` option | Default | Meaning |
+|---|---|---|
+| `--hidden-size` | 512 | hidden units |
+| `--epochs` | 30 | passes over the training set |
+| `--lr` | 0.05 | starting learning rate (decays to 0) |
+| `--momentum` | 0.9 | momentum, 0 = plain SGD |
+| `--dropout` | 0.2 | fraction of hidden units dropped while training |
+| `--no-augment` | off | don't shift the training images |
+| `--batch-size` | 64 | images per gradient step |
+| `--seed` | 0 | random seed; the same seed gives the same result |
+| `--out` | `model.npz` | where to save the model |
+
+| `test.py` option | Default | Meaning |
+|---|---|---|
+| `--model` | `model.npz` | model to load |
+| `--num` | 25 | how many images to show |
+| `--wrong` | off | only show misclassified images |
+
+For a quick run while experimenting: `python train.py --epochs 5 --no-augment`
+(about 10 seconds, ~98%).

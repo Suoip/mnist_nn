@@ -19,15 +19,22 @@ import numpy as np
 
 
 def init_params(hidden_size, rng):
-    """Small random weights and zero biases.
+    """Random weights (He initialization) and zero biases.
 
     The weights must be random: if they all started equal, every hidden unit
     would compute the same thing and get the same update, forever.
+
+    Their scale matters too. Too small and the signal shrinks a little at every
+    layer (so do the gradients, and learning starts slowly); too large and it
+    blows up. He initialization draws each weight with standard deviation
+    sqrt(2 / fan_in), fan_in being the number of inputs to the layer. That keeps
+    the size of the activations about the same from layer to layer. The 2 is
+    there because ReLU zeroes about half of its inputs.
     """
     return {
-        "W1": rng.standard_normal((hidden_size, 784), dtype=np.float32) * 0.01,
+        "W1": rng.standard_normal((hidden_size, 784), dtype=np.float32) * (2 / 784) ** 0.5,
         "b1": np.zeros((hidden_size, 1), dtype=np.float32),
-        "W2": rng.standard_normal((10, hidden_size), dtype=np.float32) * 0.01,
+        "W2": rng.standard_normal((10, hidden_size), dtype=np.float32) * (2 / hidden_size) ** 0.5,
         "b2": np.zeros((10, 1), dtype=np.float32),
     }
 

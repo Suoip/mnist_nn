@@ -121,14 +121,33 @@ def backward(params, probs, cache, Y):
     return {"W1": dW1, "b1": db1, "W2": dW2, "b2": db2}
 
 
+def random_shift(X, rng, max_shift=2):
+    """Data augmentation: move a batch of images by up to max_shift pixels.
+
+    A "3" moved two pixels to the left is still a "3", but to the network it is
+    a brand-new input. Showing it shifted copies teaches it that position
+    doesn't matter, which is like having far more training data for free.
+
+    Every image in the batch gets the same random (dy, dx) shift, which keeps
+    this simple and fast; over thousands of batches each image still ends up
+    seen at many positions. np.roll wraps pixels that fall off one edge around
+    to the other side, which is harmless here: MNIST digits sit in the middle
+    of the 28x28 image with a blank border of about 4 pixels.
+    """
+    dy, dx = rng.integers(-max_shift, max_shift + 1, size=2)
+    images = X.reshape(28, 28, -1)                        # (784, m) -> (rows, cols, m)
+    images = np.roll(images, (dy, dx), axis=(0, 1))
+    return images.reshape(784, -1)
+
+
 def accuracy(params, X, Y):
     """Fraction of the images in X whose most likely digit is the right one."""
     probs, _ = forward(params, X)
     return float((probs.argmax(axis=0) == Y).mean())
 
 
-def train(X, Y, X_dev, Y_dev, hidden_size=512, epochs=20, lr=0.05, momentum=0.9,
-          batch_size=64, drop_rate=0.2, seed=0):
+def train(X, Y, X_dev, Y_dev, hidden_size=512, epochs=30, lr=0.05, momentum=0.9,
+          batch_size=64, drop_rate=0.2, augment=True, seed=0):
     """Train with mini-batch stochastic gradient descent (SGD) with momentum
     and a cosine learning-rate schedule.
 
@@ -151,6 +170,8 @@ def train(X, Y, X_dev, Y_dev, hidden_size=512, epochs=20, lr=0.05, momentum=0.9,
         for i in range(0, m, batch_size):
             batch = order[i:i + batch_size]
             Xb, Yb = X[:, batch], Y[batch]
+            if augment:
+                Xb = random_shift(Xb, rng)
 
             probs, cache = forward(params, Xb, drop_rate, rng)
             grads = backward(params, probs, cache, Yb)

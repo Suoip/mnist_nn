@@ -14,10 +14,11 @@ from mnist import load_mnist
 
 def main():
     parser = argparse.ArgumentParser(description="Train the MNIST network and save it to a .npz file.")
-    parser.add_argument("--hidden-size", type=int, default=128, help="number of hidden units")
-    parser.add_argument("--epochs", type=int, default=10, help="passes over the training set")
+    parser.add_argument("--hidden-size", type=int, default=512, help="number of hidden units")
+    parser.add_argument("--epochs", type=int, default=20, help="passes over the training set")
     parser.add_argument("--lr", type=float, default=0.05, help="starting learning rate")
     parser.add_argument("--momentum", type=float, default=0.9, help="momentum (0 = plain SGD)")
+    parser.add_argument("--dropout", type=float, default=0.2, help="fraction of hidden units dropped while training")
     parser.add_argument("--batch-size", type=int, default=64, help="images per gradient step")
     parser.add_argument("--seed", type=int, default=0, help="random seed (same seed = same result)")
     parser.add_argument("--out", default="model.npz", help="where to save the trained model")
@@ -34,6 +35,7 @@ def main():
         lr=args.lr,
         momentum=args.momentum,
         batch_size=args.batch_size,
+        drop_rate=args.dropout,
         seed=args.seed,
     )
     print(f"Training took {time.time() - start:.0f}s")

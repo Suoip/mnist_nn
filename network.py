@@ -1,6 +1,6 @@
 """A 2-layer fully-connected neural network, written from scratch with NumPy.
 
-    input (784 pixels) -> Linear -> ReLU -> Linear -> Softmax -> 10 probabilities
+    input (784 pixels) -> Linear -> ReLU -> Dropout -> Linear -> Softmax -> 10 probabilities
 
 Shape convention: examples are stored as *columns*. A batch of m images is an
 array X of shape (784, m) and the network's output for it is (10, m). That way
@@ -50,17 +50,30 @@ def softmax(Z):
     return E / E.sum(axis=0, keepdims=True)
 
 
-def forward(params, X):
+def forward(params, X, drop_rate=0.0, rng=None):
     """Run the network on X (784, m).
 
     Returns the output probabilities (10, m) and a cache of the intermediate
-    values that backward() needs.
+    values that backward() needs. drop_rate > 0 turns on dropout, which is only
+    used during training.
     """
     Z1 = params["W1"] @ X + params["b1"]   # (hidden, m)  b1 is broadcast across the m columns
     A1 = np.maximum(Z1, 0)                 # (hidden, m)  ReLU: negative values become 0
+
+    mask = None
+    if drop_rate > 0:
+        # Dropout: switch off each hidden unit at random (a different set for
+        # every image and every batch). The network can't rely on any single
+        # unit, so it learns redundant, more general features and overfits less.
+        # The survivors are scaled up by 1 / (1 - drop_rate) so the average size
+        # of A1 is unchanged, which means nothing has to change at test time.
+        keep = rng.random(A1.shape, dtype=np.float32) >= drop_rate
+        mask = keep.astype(np.float32) / (1 - drop_rate)
+        A1 = A1 * mask
+
     Z2 = params["W2"] @ A1 + params["b2"]  # (10, m)      one score per digit
     probs = softmax(Z2)                    # (10, m)      each column sums to 1
-    return probs, (X, Z1, A1)
+    return probs, (X, Z1, A1, mask)
 
 
 def cross_entropy(probs, Y):
@@ -79,7 +92,7 @@ def backward(params, probs, cache, Y):
     Walks the forward pass in reverse, applying the chain rule one step at a
     time. Every gradient has the same shape as the thing it is the gradient of.
     """
-    X, Z1, A1 = cache
+    X, Z1, A1, mask = cache
     m = Y.size
 
     # Softmax + cross-entropy together have a famously simple gradient:
@@ -94,6 +107,10 @@ def backward(params, probs, cache, Y):
     dW2 = dZ2 @ A1.T                        # (10, hidden)
     db2 = dZ2.sum(axis=1, keepdims=True)    # (10, 1)  b2 was added to all m columns, so sum over them
     dA1 = params["W2"].T @ dZ2              # (hidden, m)
+
+    # Dropped units sent nothing forward, so they get no gradient back
+    if mask is not None:
+        dA1 *= mask
 
     # A1 = ReLU(Z1): the gradient only flows back where Z1 was positive
     dZ1 = dA1 * (Z1 > 0)                    # (hidden, m)
@@ -110,8 +127,8 @@ def accuracy(params, X, Y):
     return float((probs.argmax(axis=0) == Y).mean())
 
 
-def train(X, Y, X_dev, Y_dev, hidden_size=128, epochs=10, lr=0.05, momentum=0.9,
-          batch_size=64, seed=0):
+def train(X, Y, X_dev, Y_dev, hidden_size=512, epochs=20, lr=0.05, momentum=0.9,
+          batch_size=64, drop_rate=0.2, seed=0):
     """Train with mini-batch stochastic gradient descent (SGD) with momentum
     and a cosine learning-rate schedule.
 
@@ -135,7 +152,7 @@ def train(X, Y, X_dev, Y_dev, hidden_size=128, epochs=10, lr=0.05, momentum=0.9,
             batch = order[i:i + batch_size]
             Xb, Yb = X[:, batch], Y[batch]
 
-            probs, cache = forward(params, Xb)
+            probs, cache = forward(params, Xb, drop_rate, rng)
             grads = backward(params, probs, cache, Yb)
             losses.append(cross_entropy(probs, Yb))
 

@@ -17,6 +17,8 @@
   --div-neg: #e34948;      /* weight: wants this spot empty */
   --div-mid: #f0efec;      /* weight: doesn't care */
   --div-pos: #1c5cab;      /* weight: wants ink here */
+  --good: #006300;         /* right guess (always with a check mark) */
+  --bad: #d03b3b;          /* wrong guess (always with a cross) */
 }
 @media (prefers-color-scheme: dark) {
   :root {
@@ -36,6 +38,8 @@
     --div-neg: #e66767;
     --div-mid: #383835;
     --div-pos: #6da7ec;
+    --good: #0ca30c;
+    --bad: #e66767;
   }
 }
 
@@ -142,6 +146,66 @@ button:hover { border-color: var(--accent); }
 .neuron-votes { font-size: 13px; color: var(--text-2); margin: 0; }
 .empty { color: var(--muted); }
 
+/* 4. How it learned */
+.replay-controls { display: flex; gap: 12px; align-items: center; margin-top: 16px; }
+.replay-controls button { flex: none; min-width: 108px; }
+button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+#replay-slider { flex: 1; accent-color: var(--accent); height: 28px; }
+.replay-status { color: var(--text-2); margin-top: 8px; min-height: 3em; }
+.replay-top { display: flex; flex-wrap: wrap; gap: 24px; align-items: flex-start; }
+.replay-stat { width: 210px; }
+.stat-value { font-size: 56px; font-weight: 700; line-height: 1; margin: 8px 0 4px; }
+.stat-label { color: var(--text-2); font-size: 14px; }
+.replay-chart { flex: 1; min-width: 260px; align-items: stretch; }
+#replay-chart svg { display: block; width: 100%; overflow: visible; }
+.chart-grid { stroke: var(--grid); stroke-width: 1; }
+.chart-axis { stroke: var(--muted); stroke-width: 1; }
+.chart-tick { fill: var(--muted); font-size: 12px; }
+.chart-line { fill: none; stroke: var(--accent); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+.chart-area { fill: var(--accent); opacity: 0.1; }
+.chart-now { stroke: var(--text-2); stroke-width: 1; }
+.chart-dot { fill: var(--accent); stroke: var(--surface); stroke-width: 2; }
+.replay-digits { display: grid; grid-template-columns: repeat(6, 1fr); gap: 10px; margin-top: 12px; }
+.replay-digit { text-align: center; font-size: 13px; }
+.replay-digit canvas, .replay-neurons canvas, .mistake canvas {
+  width: 100%; aspect-ratio: 1; height: auto; border-radius: 6px; border: 1px solid var(--grid);
+}
+.replay-digit p { margin: 4px 0 0; color: var(--text-2); }
+.verdict { font-weight: 600; }
+.verdict.right { color: var(--good); }
+.verdict.wrong { color: var(--bad); }
+.replay-neurons { display: grid; grid-template-columns: repeat(8, 1fr); gap: 8px; margin-top: 12px; }
+
+/* 5. Mistakes */
+.confusion-wrap { margin: 12px 0 8px; max-width: 520px; }
+.confusion-row { display: flex; align-items: center; gap: 6px; }
+.axis-label { color: var(--muted); font-size: 13px; margin: 0 0 4px 52px; }
+.axis-label.vertical { writing-mode: vertical-rl; margin: 0; }
+.confusion { flex: 1; display: grid; grid-template-columns: repeat(11, 1fr); gap: 2px; font-size: 13px; }
+.confusion .head { display: grid; place-items: center; font-weight: 600; color: var(--text-2); aspect-ratio: 1; }
+.confusion .cell {
+  aspect-ratio: 1; border: 0; padding: 0; border-radius: 4px; font: inherit; font-size: 12px;
+  display: grid; place-items: center; background: var(--seq-low); color: var(--text);
+}
+.confusion .cell.diagonal { background: transparent; color: var(--muted); font-size: 10px; cursor: default; }
+.confusion .cell.count { cursor: pointer; font-weight: 600; }
+.confusion .cell.selected { outline: 2px solid var(--text); outline-offset: 1px; }
+.mistakes-header { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-top: 24px; }
+.mistakes-header h3 { margin: 0; }
+.mistakes-header button { flex: none; }
+.mistake-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(72px, 1fr)); gap: 10px; margin-top: 12px; }
+.mistake { text-align: center; font-size: 12px; color: var(--text-2); }
+.mistake p { margin: 4px 0 0; line-height: 1.3; }
+
+/* 6. From 306 mistakes */
+.steps { display: grid; grid-template-columns: minmax(0, 1fr) minmax(120px, 280px); gap: 16px 20px; margin: 16px 0 8px; align-items: center; }
+.step-text p { margin: 0; }
+.step-text .step-title { font-weight: 600; }
+.step-text .step-detail { color: var(--text-2); font-size: 14px; }
+.step-bar { display: flex; align-items: center; gap: 8px; }
+.step-bar .fill { height: 20px; background: var(--accent); border-radius: 0 4px 4px 0; }
+.step-bar .value { font-weight: 600; font-variant-numeric: tabular-nums; }
+
 footer { color: var(--text-2); text-align: center; font-size: 14px; }
 
 .tooltip {
@@ -159,4 +223,8 @@ footer { color: var(--text-2); text-align: center; font-size: 14px; }
 }
 @media (max-width: 760px) {
   .neurons { grid-template-columns: 1fr 1fr; }
+  .replay-digits { grid-template-columns: repeat(4, 1fr); }
+  .replay-neurons { grid-template-columns: repeat(4, 1fr); }
+  .steps { grid-template-columns: 1fr; gap: 6px; }
+  .step-bar { margin-bottom: 12px; }
 }

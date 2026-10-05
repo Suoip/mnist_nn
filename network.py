@@ -147,13 +147,17 @@ def accuracy(params, X, Y):
 
 
 def train(X, Y, X_dev, Y_dev, hidden_size=512, epochs=30, lr=0.05, momentum=0.9,
-          batch_size=64, drop_rate=0.2, augment=True, seed=0):
+          batch_size=64, drop_rate=0.2, augment=True, seed=0, on_step=None):
     """Train with mini-batch stochastic gradient descent (SGD) with momentum
     and a cosine learning-rate schedule.
 
     One epoch = one pass over all training images, in a fresh random order,
     taking one step downhill on the loss after every batch.
     The same seed always gives the same result.
+
+    on_step, if given, is called as on_step(step, params) once before training
+    (step 0) and after every step. train.py uses it to keep snapshots of the
+    network for the web page's training replay.
     """
     rng = np.random.default_rng(seed)
     params = init_params(hidden_size, rng)
@@ -162,6 +166,8 @@ def train(X, Y, X_dev, Y_dev, hidden_size=512, epochs=30, lr=0.05, momentum=0.9,
     m = X.shape[1]
     total_steps = epochs * math.ceil(m / batch_size)
     step = 0
+    if on_step:
+        on_step(step, params)
 
     for epoch in range(epochs):
         start = time.time()
@@ -190,6 +196,8 @@ def train(X, Y, X_dev, Y_dev, hidden_size=512, epochs=30, lr=0.05, momentum=0.9,
             for k in params:
                 velocity[k] = momentum * velocity[k] + grads[k]
                 params[k] -= step_lr * velocity[k]
+            if on_step:
+                on_step(step, params)
 
         print(f"epoch {epoch + 1:2d}/{epochs}  train loss {np.mean(losses):.4f}  "
               f"dev acc {accuracy(params, X_dev, Y_dev) * 100:.2f}%  "

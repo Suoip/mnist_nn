@@ -97,6 +97,69 @@
     <div class="neurons" id="neurons"></div>
   </section>
 
+  <section id="learn">
+    <h2><span class="step">4</span>How it learned</h2>
+    <p class="lead">Nobody told the network what a 7 looks like. It started out completely
+      random and practiced: look at an image, guess, check the right answer, then nudge all of
+      its numbers a tiny bit so the right answer becomes a little more likely. Repeat. Press
+      play to watch it happen.</p>
+    <div class="replay-controls">
+      <button type="button" id="play" class="primary">▶ Play</button>
+      <input type="range" id="replay-slider" min="0" max="1" value="0" aria-label="Moment during training">
+    </div>
+    <p class="replay-status" id="replay-status"></p>
+    <div class="replay-top">
+      <div class="replay-stat">
+        <p class="stat-value" id="replay-accuracy"></p>
+        <p class="stat-label">of 10,000 test digits right</p>
+      </div>
+      <figure class="replay-chart">
+        <div id="replay-chart"></div>
+        <figcaption>Test digits right, by images practiced on. Each step to the right is
+          10&nbsp;times more practice.</figcaption>
+      </figure>
+    </div>
+
+    <h3>Its guesses for 12 test digits</h3>
+    <div class="replay-digits" id="replay-digits"></div>
+
+    <h3>What 8 of its neurons look for</h3>
+    <p class="lead">At the start every pattern is random noise. Watch shapes form in the
+      middle as it practices. The speckled edges barely change: digits almost never reach
+      the edges, so the network rarely gets a reason to adjust them.</p>
+    <div class="replay-neurons" id="replay-neurons"></div>
+  </section>
+
+  <section id="mistakes">
+    <h2><span class="step">5</span>Where it still gets it wrong</h2>
+    <p class="lead">Out of the 10,000 test digits it never saw while practicing, it gets
+      <b id="mistake-count"></b> wrong. Look through them: many would fool a person too.</p>
+    <h3>Which digits get mixed up</h3>
+    <p class="lead">Each row is the real digit, each column is the network's guess. The
+      numbers count its mistakes. Click one to see those digits.</p>
+    <div class="confusion-wrap">
+      <p class="axis-label">Network's guess →</p>
+      <div class="confusion-row">
+        <p class="axis-label vertical">Real digit →</p>
+        <div class="confusion" id="confusion"></div>
+      </div>
+    </div>
+    <div class="mistakes-header">
+      <h3 id="mistakes-title"></h3>
+      <button type="button" id="mistakes-more"></button>
+    </div>
+    <div class="mistake-grid" id="mistake-grid"></div>
+  </section>
+
+  <section id="better">
+    <h2><span class="step">6</span><span>From 306 mistakes to <span id="final-mistakes"></span></span></h2>
+    <p class="lead">The first version of this network got 306 of the same 10,000 test digits
+      wrong. Five changes, each tried one at a time, brought that down. The basic design
+      never changed: still one layer of neurons, still the same math.</p>
+    <div class="steps" id="steps"></div>
+    <p class="caption">Mistakes on the 10,000 test digits after each change.</p>
+  </section>
+
   <footer>
     <p>Built from scratch with Python and NumPy, then run here in your browser.
       It recognizes <b id="accuracy">99%</b> of 10,000 handwritten test digits it never saw while learning.</p>
@@ -105,5 +168,6 @@
 <div class="tooltip" id="tooltip" hidden></div>
 <script src="model.js"></script>
 <script src="app.js"></script>
+<script src="learning.js"></script>
 </body>
 </html>

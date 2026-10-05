@@ -16,7 +16,7 @@ Works the same on Windows, macOS and Linux (on macOS/Linux you may need to type
 ```
 pip install -r requirements.txt
 python download_mnist.py      # fetches the 4 MNIST files into data/
-python train.py               # trains, prints test accuracy, saves model.npz
+python train.py               # trains, prints test accuracy, saves model.npz and history.npz
 python test.py                # shows random test images with the network's guesses
 python test.py --wrong        # shows only the ones it got wrong
 python export_web.py          # updates the web page with the newly trained model
@@ -31,8 +31,8 @@ python export_web.py          # updates the web page with the newly trained mode
 | `network.py` | The neural network: initialization, forward pass, loss, backpropagation, training. |
 | `train.py` | Command line script: trains a network, reports test accuracy, saves it to `model.npz`. |
 | `test.py` | Command line script: loads `model.npz` and shows test images with its guesses. |
-| `export_web.py` | Packs `model.npz` into `docs/model.js` for the web page. |
-| `docs/` | The web page: `index.html`, `style.css`, `app.js` and the generated `model.js`. |
+| `export_web.py` | Packs `model.npz` and `history.npz` into `docs/model.js` for the web page. |
+| `docs/` | The web page: `index.html`, `style.css`, `app.js` (sections 1-3), `learning.js` (sections 4-6) and the generated `model.js`. |
 
 ## The web page
 
@@ -43,10 +43,19 @@ network. Visitors draw a digit and see:
 2. **What the computer sees**: the drawing cut out, shrunk to 28 × 28 and turned into 784 numbers.
 3. **Inside the network**: all 512 hidden neurons lighting up, the 10 output scores, and
    the neurons that voted hardest for the answer, with the pattern each one looks for.
+4. **How it learned**: a replay of the real training run, from random guessing to 99%:
+   the accuracy curve, 8 neurons' patterns forming, and 12 test digits' guesses changing.
+5. **Where it still gets it wrong**: every test digit it misses, and a grid of which
+   digits get mixed up (click a cell to see those mistakes).
+6. **From 306 mistakes to under 100**: what each improvement in this README did, in plain words.
 
 Training stays in Python. The page only runs the finished network: `app.js` repeats
 `network.forward()` in JavaScript (about 20 lines) on the weights exported to
 `model.js`. To try it, open `docs/index.html` in a browser; it needs no server.
+
+For the replay, `train.py` keeps snapshots of the network while it trains (often at
+the start, where it learns fastest, then after every epoch) in `history.npz`, and
+`export_web.py` turns them into the replay data.
 
 Two details make it work on real drawings:
 

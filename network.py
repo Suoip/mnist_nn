@@ -8,6 +8,10 @@ a whole layer is a single matrix product (W @ X) with no loop over examples.
 
 The parameters live in a dict so the training loop can treat them all the same:
     W1 (hidden, 784)   b1 (hidden, 1)   W2 (10, hidden)   b2 (10, 1)
+
+Everything is float32. Careful when adding code: mixing in a NumPy float64
+*scalar* (e.g. the result of np.sqrt(2.0) or np.cos(x)) silently turns the
+arrays back into float64. Plain Python floats and the math module are safe.
 """
 import time
 
@@ -21,10 +25,10 @@ def init_params(hidden_size, rng):
     would compute the same thing and get the same update, forever.
     """
     return {
-        "W1": rng.standard_normal((hidden_size, 784)) * 0.01,
-        "b1": np.zeros((hidden_size, 1)),
-        "W2": rng.standard_normal((10, hidden_size)) * 0.01,
-        "b2": np.zeros((10, 1)),
+        "W1": rng.standard_normal((hidden_size, 784), dtype=np.float32) * 0.01,
+        "b1": np.zeros((hidden_size, 1), dtype=np.float32),
+        "W2": rng.standard_normal((10, hidden_size), dtype=np.float32) * 0.01,
+        "b2": np.zeros((10, 1), dtype=np.float32),
     }
 
 

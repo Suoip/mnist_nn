@@ -32,7 +32,9 @@ def read_images(name):
     pixels = np.frombuffer(data, dtype=np.uint8, offset=16).reshape(count, rows * cols)
     # Transpose so each image is a column (see the shape convention in network.py),
     # and scale 0..255 down to 0..1 so the inputs are small numbers.
-    return pixels.T.astype(np.float64) / 255
+    # float32 (instead of NumPy's default float64) is plenty precise for a neural
+    # network and makes the matrix products about twice as fast.
+    return pixels.T.astype(np.float32) / 255
 
 
 def read_labels(name):

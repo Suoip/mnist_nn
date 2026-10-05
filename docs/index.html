@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>How a computer reads handwriting</title>
+  <meta name="description" content="Draw a digit and watch a small neural network, built from scratch, recognize it.">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<main>
+  <header class="intro">
+    <h1>How a computer reads handwriting</h1>
+    <p>This is a small <b>neural network</b>: a program that learned to recognize
+      handwritten digits by studying 55,000 examples. It was built from scratch,
+      without any AI libraries. Draw a digit and look inside it while it thinks.</p>
+  </header>
+
+  <section id="draw">
+    <h2><span class="step">1</span>Draw a digit</h2>
+    <p class="lead">Use your mouse or finger to draw any digit from 0 to 9.</p>
+    <div class="draw-layout">
+      <div class="pad-column">
+        <div class="pad-wrap">
+          <canvas id="pad" width="280" height="280" aria-label="Drawing area: draw a digit here"></canvas>
+          <p class="pad-hint" id="pad-hint">Draw a digit here</p>
+        </div>
+        <div class="buttons">
+          <button type="button" id="clear">Clear</button>
+          <button type="button" id="example">Real example</button>
+        </div>
+        <p class="note" id="example-note"></p>
+      </div>
+      <div class="result" aria-live="polite">
+        <p class="guess-label">The network thinks it's a</p>
+        <p class="guess" id="guess">?</p>
+        <p class="sure" id="sure"></p>
+        <div class="bars" id="bars"></div>
+        <p class="caption">How sure it is about each digit</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="see">
+    <h2><span class="step">2</span>What the computer actually sees</h2>
+    <p class="lead">A computer can't look at a picture the way you do. First your drawing
+      is cut out, shrunk to a tiny grid of 28&nbsp;×&nbsp;28 squares and centered, exactly
+      like every example the network learned from. Then each square becomes a number:
+      0 for empty, 1 for full ink.</p>
+    <div class="pipeline">
+      <figure>
+        <canvas id="see-drawing" width="280" height="280"></canvas>
+        <figcaption>Your drawing, cut out</figcaption>
+      </figure>
+      <span class="arrow" aria-hidden="true">→</span>
+      <figure>
+        <canvas id="see-grid" width="336" height="336"></canvas>
+        <figcaption>Shrunk to 28 × 28 squares</figcaption>
+      </figure>
+    </div>
+    <figure class="strip-figure">
+      <canvas id="see-numbers" width="1568" height="160"></canvas>
+      <figcaption>The same 784 squares as one long row of numbers, row after row of the grid.
+        This row of numbers is all the network ever gets. Each spike is ink.</figcaption>
+    </figure>
+  </section>
+
+  <section id="inside">
+    <h2><span class="step">3</span>Inside the network</h2>
+    <p class="lead">The network has three layers. The 784 numbers flow into 512
+      <b>neurons</b>. Each neuron has learned to look for its own pattern of ink, and lights
+      up when it finds it. Then every neuron casts votes: for some digits, against others.
+      The digit with the most votes wins.</p>
+    <div class="network">
+      <figure>
+        <canvas id="net-input" width="224" height="224"></canvas>
+        <figcaption><b>784</b> numbers in</figcaption>
+      </figure>
+      <span class="arrow" aria-hidden="true">→</span>
+      <figure>
+        <canvas id="net-hidden" width="512" height="256"></canvas>
+        <figcaption><b>512</b> neurons, brighter = more active</figcaption>
+      </figure>
+      <span class="arrow" aria-hidden="true">→</span>
+      <figure>
+        <div class="outputs" id="net-output"></div>
+        <figcaption><b>10</b> digits out</figcaption>
+      </figure>
+    </div>
+
+    <h3 id="neurons-title">The neurons that voted hardest</h3>
+    <p class="lead">For each neuron: on the left, the pattern it looks for
+      (<span class="key key-pos"></span>blue&nbsp;= wants ink here,
+      <span class="key key-neg"></span>red&nbsp;= wants this spot empty). On the right, that
+      pattern laid over your drawing: the more of your ink lands on blue, the more the
+      neuron lights up and the louder its vote.</p>
+    <div class="neurons" id="neurons"></div>
+  </section>
+
+  <footer>
+    <p>Built from scratch with Python and NumPy, then run here in your browser.
+      It recognizes <b id="accuracy">99%</b> of 10,000 handwritten test digits it never saw while learning.</p>
+  </footer>
+</main>
+<div class="tooltip" id="tooltip" hidden></div>
+<script src="model.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

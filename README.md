@@ -19,6 +19,7 @@ python download_mnist.py      # fetches the 4 MNIST files into data/
 python train.py               # trains, prints test accuracy, saves model.npz
 python test.py                # shows random test images with the network's guesses
 python test.py --wrong        # shows only the ones it got wrong
+python export_web.py          # updates the web page with the newly trained model
 ```
 
 ## Files
@@ -30,6 +31,31 @@ python test.py --wrong        # shows only the ones it got wrong
 | `network.py` | The neural network: initialization, forward pass, loss, backpropagation, training. |
 | `train.py` | Command line script: trains a network, reports test accuracy, saves it to `model.npz`. |
 | `test.py` | Command line script: loads `model.npz` and shows test images with its guesses. |
+| `export_web.py` | Packs `model.npz` into `docs/model.js` for the web page. |
+| `docs/` | The web page: `index.html`, `style.css`, `app.js` and the generated `model.js`. |
+
+## The web page
+
+`docs/` is an interactive page made for people who have never heard of a neural
+network. Visitors draw a digit and see:
+
+1. **The guess**, live while drawing, with how sure the network is about each digit.
+2. **What the computer sees**: the drawing cut out, shrunk to 28 × 28 and turned into 784 numbers.
+3. **Inside the network**: all 512 hidden neurons lighting up, the 10 output scores, and
+   the neurons that voted hardest for the answer, with the pattern each one looks for.
+
+Training stays in Python. The page only runs the finished network: `app.js` repeats
+`network.forward()` in JavaScript (about 20 lines) on the weights exported to
+`model.js`. To try it, open `docs/index.html` in a browser; it needs no server.
+
+Two details make it work on real drawings:
+
+- **The drawing is prepared exactly like the MNIST images**: cropped to the ink,
+  scaled so its longer side is 20 pixels, then centered by its center of mass in a
+  28 × 28 grid (`preprocess()` in `app.js`). Without this, a digit drawn small or in
+  a corner looks nothing like what the network learned from.
+- **W1 is stored as 8-bit integers** with one scale per neuron, which makes
+  `model.js` 4x smaller (0.7 MB) without changing the test accuracy.
 
 ## How it works
 

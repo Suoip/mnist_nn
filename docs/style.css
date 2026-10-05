@@ -1,0 +1,162 @@
+/* Colors are defined once here, light and dark. app.js reads them too, so the
+   canvases follow the same theme. */
+:root {
+  color-scheme: light;
+  --page: #f9f9f7;
+  --surface: #fcfcfb;
+  --text: #0b0b0b;
+  --text-2: #52514e;
+  --muted: #898781;
+  --grid: #e1e0d9;
+  --border: rgba(11, 11, 11, 0.10);
+  --paper: #ffffff;        /* drawing pad and pixel grids */
+  --ink: #0b0b0b;          /* the drawn digit */
+  --accent: #2a78d6;       /* bars, buttons */
+  --seq-low: #f0efec;      /* inactive neuron */
+  --seq-high: #104281;     /* very active neuron */
+  --div-neg: #e34948;      /* weight: wants this spot empty */
+  --div-mid: #f0efec;      /* weight: doesn't care */
+  --div-pos: #1c5cab;      /* weight: wants ink here */
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+    --page: #0d0d0d;
+    --surface: #1a1a19;
+    --text: #ffffff;
+    --text-2: #c3c2b7;
+    --muted: #898781;
+    --grid: #2c2c2a;
+    --border: rgba(255, 255, 255, 0.10);
+    --paper: #0d0d0d;
+    --ink: #ffffff;
+    --accent: #3987e5;
+    --seq-low: #2c2c2a;
+    --seq-high: #9ec5f4;
+    --div-neg: #e66767;
+    --div-mid: #383835;
+    --div-pos: #6da7ec;
+  }
+}
+
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body {
+  margin: 0;
+  background: var(--page);
+  color: var(--text);
+  font: 16px/1.55 system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+main { max-width: 900px; margin: 0 auto; padding: 32px 16px 48px; }
+h1 { font-size: clamp(28px, 6vw, 40px); line-height: 1.15; margin: 0 0 12px; }
+h2 { font-size: 22px; margin: 0 0 8px; display: flex; align-items: center; gap: 12px; }
+h3 { font-size: 18px; margin: 32px 0 4px; }
+p { margin: 0 0 12px; }
+.intro p { color: var(--text-2); font-size: 18px; max-width: 680px; }
+.lead { color: var(--text-2); max-width: 680px; }
+
+section {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 24px;
+  margin: 24px 0;
+}
+.step {
+  display: inline-grid; place-items: center;
+  width: 32px; height: 32px; border-radius: 50%;
+  background: var(--accent); color: #fff; font-size: 16px; flex: none;
+}
+figure { margin: 0; display: flex; flex-direction: column; align-items: center; gap: 8px; }
+figcaption { color: var(--text-2); font-size: 14px; text-align: center; }
+.arrow { color: var(--muted); font-size: 28px; align-self: center; padding-bottom: 28px; }
+canvas { display: block; }
+
+/* 1. Draw */
+.draw-layout { display: flex; flex-wrap: wrap; gap: 32px; align-items: flex-start; margin-top: 16px; }
+.pad-column { width: min(100%, 320px); }
+.pad-wrap { position: relative; }
+#pad {
+  width: 100%; aspect-ratio: 1; height: auto;
+  background: var(--paper);
+  border: 2px solid var(--grid);
+  border-radius: 12px;
+  touch-action: none;   /* drawing on a phone must not scroll the page */
+  cursor: crosshair;
+}
+.pad-hint {
+  position: absolute; inset: 0; margin: 0;
+  display: grid; place-items: center;
+  color: var(--muted); pointer-events: none;
+}
+.buttons { display: flex; gap: 8px; margin-top: 12px; }
+button {
+  flex: 1; font: inherit; font-weight: 600; cursor: pointer;
+  padding: 10px 14px; border-radius: 10px;
+  border: 1px solid var(--border); background: var(--page); color: var(--text);
+}
+button:hover { border-color: var(--accent); }
+#example { background: var(--accent); border-color: var(--accent); color: #fff; }
+.note { color: var(--text-2); font-size: 14px; margin-top: 10px; min-height: 1.5em; }
+
+.result { flex: 1; min-width: 260px; }
+.guess-label { color: var(--text-2); margin: 0; }
+.guess { font-size: 96px; font-weight: 700; line-height: 1; margin: 4px 0 8px; }
+.sure { color: var(--text-2); min-height: 3em; }
+.bars { display: flex; gap: 2px; height: 160px; margin-top: 8px; }
+.bar { flex: 1; display: flex; flex-direction: column; align-items: center; }
+.bar-value { font-size: 12px; color: var(--text-2); height: 18px; font-variant-numeric: tabular-nums; }
+.bar-track { flex: 1; width: 100%; display: flex; align-items: flex-end; justify-content: center; border-bottom: 1px solid var(--grid); }
+.bar-fill { width: min(24px, 80%); background: var(--accent); border-radius: 4px 4px 0 0; transition: height 0.12s; }
+.bar-digit { font-weight: 600; margin-top: 4px; }
+.bar.top .bar-digit { color: var(--accent); }
+.caption { color: var(--muted); font-size: 13px; margin-top: 6px; }
+
+/* 2. What the computer sees */
+.pipeline { display: flex; gap: 12px; align-items: flex-start; justify-content: center; margin: 20px 0; }
+.pipeline canvas { width: min(168px, 34vw); height: auto; border-radius: 8px; background: var(--paper); border: 1px solid var(--grid); }
+.strip-figure canvas { width: 100%; height: 80px; background: var(--paper); border: 1px solid var(--grid); border-radius: 8px; }
+.strip-figure figcaption { max-width: 560px; }
+
+/* 3. Inside the network */
+.network { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-start; justify-content: center; margin: 20px 0 8px; }
+#net-input { width: 112px; height: 112px; border-radius: 6px; border: 1px solid var(--grid); }
+#net-hidden { width: min(256px, 80vw); height: auto; border-radius: 6px; }
+.outputs { display: grid; grid-template-columns: auto 72px 40px; gap: 2px 6px; align-items: center; font-size: 13px; }
+.outputs .digit { font-weight: 600; text-align: right; }
+.outputs .track { height: 10px; }
+.outputs .fill { height: 100%; background: var(--accent); border-radius: 0 4px 4px 0; }
+.outputs .pct { color: var(--text-2); font-variant-numeric: tabular-nums; }
+.outputs .top .digit, .outputs .digit.top { color: var(--accent); }
+
+.key { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 4px; vertical-align: baseline; }
+.key-pos { background: var(--div-pos); }
+.key-neg { background: var(--div-neg); }
+.neurons { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-top: 12px; }
+.neuron { border: 1px solid var(--border); border-radius: 12px; padding: 12px; background: var(--page); }
+.neuron-images { display: flex; gap: 6px; }
+.neuron-images canvas { width: 50%; aspect-ratio: 1; height: auto; border-radius: 6px; }
+.neuron-title { font-weight: 600; margin: 8px 0 2px; }
+.neuron-meter { height: 6px; background: var(--seq-low); border-radius: 3px; margin: 4px 0 6px; }
+.neuron-meter div { height: 100%; background: var(--accent); border-radius: 3px; }
+.neuron-votes { font-size: 13px; color: var(--text-2); margin: 0; }
+.empty { color: var(--muted); }
+
+footer { color: var(--text-2); text-align: center; font-size: 14px; }
+
+.tooltip {
+  position: fixed; z-index: 10; pointer-events: none;
+  background: var(--text); color: var(--page);
+  font-size: 13px; padding: 6px 10px; border-radius: 8px;
+  max-width: 240px;
+}
+
+@media (max-width: 560px) {
+  section { padding: 18px 16px; }
+  .arrow { transform: rotate(90deg); padding: 0; width: 100%; text-align: center; }
+  .pipeline .arrow { width: auto; transform: none; }
+  .guess { font-size: 72px; }
+}
+@media (max-width: 760px) {
+  .neurons { grid-template-columns: 1fr 1fr; }
+}

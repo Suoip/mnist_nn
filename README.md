@@ -1,5 +1,7 @@
 # MNIST neural network from scratch
 
+**Try it live: [mnist.salihonder.dev](https://mnist.salihonder.dev)**, draw a digit and look inside the network.
+
 A small fully-connected neural network that learns to read handwritten digits,
 written with nothing but NumPy: no PyTorch, no TensorFlow. Forward pass,
 backpropagation and training loop are all in `network.py` (about 200 lines,
